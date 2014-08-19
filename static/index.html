@@ -1,0 +1,8 @@
+<script type="text/javascript" src="/static/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="/static/wsterm.js"></script>
+<script type="text/javascript">
+    $(function() {
+        new WSTerm('ws://localhost:8080/wsterm', $('#screen'));
+    });
+</script>
+<div id="screen"></div>

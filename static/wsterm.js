@@ -30,9 +30,24 @@ Cell.prototype.copyContentsFrom = function(other) {
     this.update();
 };
 
-Cell.prototype.clearContents = function() {
+Cell.prototype.setForeground = function(color) {
+    this.foreground = color;
+    this.update();
+};
+
+Cell.prototype.setBackground = function(color) {
+    this.background = color;
+    this.update();
+};
+
+Cell.prototype.resetFormatting = function() {
     this.foreground = 'gray';
     this.background = 'black';
+    this.update();
+};
+
+Cell.prototype.clearContents = function() {
+    this.resetFormatting();
     this.character = ' ';
     this.update();
 };
@@ -46,11 +61,19 @@ var Screen = function(container) {
 
     this.cells = null;
     this.currentCell = null;
+    this.resetColors();
+
+    this.state = 'character';
 
     this.frame = $('<pre />');
     this.container.append(this.frame);
 
     this.recreateCells();
+};
+
+Screen.prototype.resetColors = function() {
+    this.foreground = 'gray';
+    this.background = 'black';
 };
 
 Screen.prototype.recreateCells = function() {
@@ -108,18 +131,151 @@ Screen.prototype.performLineReturn = function() {
     }
 };
 
+Screen.prototype.processEscapeSequence = function(command, parameter) {
+    var darkColorCodeToCSS = function(colorCode) {
+        if (colorCode < 0 || colorCode > 7) {
+            colorCode = 0;
+        }
+        return [
+            'rgb(0,0,0)',
+            'rgb(170,0,0)',
+            'rgb(0,170,0)',
+            'rgb(170,85,0)',
+            'rgb(0,0,170)',
+            'rgb(170,0,170)',
+            'rgb(0,170,170)',
+            'rgb(170,170,170)'
+        ][colorCode];
+    };
+    var lightColorCodeToCSS = function(colorCode) {
+        if (colorCode < 0 || colorCode > 7) {
+            colorCode = 0;
+        }
+        return [
+            'rgb(85,85,85)',
+            'rgb(255,85,85)',
+            'rgb(85,255,85)',
+            'rgb(255,255,85)',
+            'rgb(85,85,255)',
+            'rgb(255,85,255)',
+            'rgb(85,255,255)',
+            'rgb(255,255,255)'
+        ][colorCode];
+    };
+    var colorIndexToCSS = function(colorIndex) {
+        if (colorIndex >= 0x0 && colorIndex <= 0x7) {
+            return darkColorCodeToCSS(colorIndex);
+        } else if (colorIndex >= 0x8 && colorIndex <= 0xF) {
+            return lightColorCodeToCSS(colorIndex);
+        } else {
+            console.log('Unimplemented color index ' + colorIndex);
+            return 'black';
+        }
+    };
+
+    var parameters = parameter.split(';');
+    switch (command) {
+    case 'H':
+        var row = parameters[0] || 1;
+        var column = parameters[1] || 1;
+        this.moveCursor(column - 1, row - 1);
+        break;
+    case 'd':
+        this.performLineReturn();
+        break;
+    case 'm':
+        for (var i = 0; i < parameters.length; i++) {
+            var format = parameters[i];
+            console.log('format ' + format);
+            if (format >= 30 && format <= 37) {
+                this.foreground = darkColorCodeToCSS(format - 30);
+            } else if (format >= 40 && format <= 47) {
+                this.background = darkColorCodeToCSS(format - 40);
+            } else if (format >= 90 && format <= 97) {
+                this.foreground = lightColorCodeToCSS(format - 90);
+            } else if (format >= 100 && format <= 107) {
+                this.background = lightColorCodeToCSS(format - 100);
+            } else if (format == 38 || format == 48) {
+                if (i + 1 >= parameters.length) {
+                    console.log('Missing argument for color selection');
+                    return;
+                }
+                var colorMode = parameters[++i];
+                switch (colorMode) {
+                case '5':
+                    if (i + 1 >= parameters.length) {
+                        console.log('Missing argument for color selection mode 5');
+                        return;
+                    }
+                    var colorIndex = parameters[++i];
+                    var colorCSS = colorIndexToCSS(colorIndex);
+                    if (format == 38) {
+                        this.foreground = colorCSS;
+                    } else {
+                        this.background = colorCSS;
+                    }
+                    break;
+                default:
+                    console.log('Unknown color mode ' + colorMode);
+                    break;
+                }
+            } else if (format == 0) {
+                this.resetColors();
+            }
+        }
+        break;
+    }
+};
+
 Screen.prototype.print = function(text) {
     for (var i = 0; i < text.length; i++) {
         var character = text.charAt(i);
         var characterCode = text.charCodeAt(i);
-        if (character === '\n') {
-            this.performLineReturn();
-        } else if (characterCode >= 32 && characterCode <= 126) {
-            this.currentCell.setCharacter(character);
-            this.advanceCursor();
-        } else {
-            this.currentCell.setCharacter(' ');
-            this.advanceCursor();
+        switch (this.state) {
+        case 'character':
+            if (character === '\n') {
+                this.performLineReturn();
+            } else if (characterCode >= 32 && characterCode <= 126) {
+                this.currentCell.setCharacter(character);
+                this.currentCell.setForeground(this.foreground);
+                this.currentCell.setBackground(this.background);
+                this.advanceCursor();
+            } else if (characterCode === 27) {
+                this.state = 'escape1';
+            } else {
+                this.currentCell.setCharacter(' ');
+                this.advanceCursor();
+            }
+            break;
+        case 'escape1':
+            if (character === '[' || character === '(') {
+                this.state = 'escape2';
+                this.escapeCharacter = character;
+                this.escapeParameters = '';
+            } else {
+                this.state = 'character';
+                console.log('Unexpected byte ' + characterCode + ' in state escape1');
+            }
+            break;
+        case 'escape2':
+            if (character >= 'A' && character <= 'z') {
+                var sequence = this.escapeCharacter + this.escapeParameters + character;
+                switch (this.escapeCharacter) {
+                case '[':
+                    console.log('Processing escape sequence ' + sequence);
+                    this.processEscapeSequence(character, this.escapeParameters);
+                    break;
+                default:
+                    console.log('Unknown escape sequence ' + sequence);
+                    break;
+                }
+                this.state = 'character';
+            } else {
+                this.escapeParameters += character;
+            }
+            break;
+        default:
+            console.log('Unknown state ' + this.state);
         }
     }
 };

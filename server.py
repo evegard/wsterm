@@ -8,7 +8,7 @@ import tornado.process
 
 class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        self.process = tornado.process.Subprocess([ 'ping', 'localhost' ], \
+        self.process = tornado.process.Subprocess([ 'watch', '-c', 'ls -la --color=always' ], \
             stdin=tornado.process.Subprocess.STREAM,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM)

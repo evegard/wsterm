@@ -1,11 +1,7 @@
 var Cell = function() {
-    this.foreground = 'gray';
-    this.background = 'black';
-    this.character = ' ';
-    this.cursor = false;
-
     this.element = $('<span />');
-    this.update();
+    this.cursor = false;
+    this.clearContents();
 };
 
 Cell.prototype.update = function() {
@@ -24,6 +20,20 @@ Cell.prototype.setCursor = function(cursor) {
 
 Cell.prototype.setCharacter = function(character) {
     this.character = character;
+    this.update();
+};
+
+Cell.prototype.copyContentsFrom = function(other) {
+    this.foreground = other.foreground;
+    this.background = other.background;
+    this.character = other.character;
+    this.update();
+};
+
+Cell.prototype.clearContents = function() {
+    this.foreground = 'gray';
+    this.background = 'black';
+    this.character = ' ';
     this.update();
 };
 
@@ -59,6 +69,18 @@ Screen.prototype.recreateCells = function() {
     this.moveCursor(this.x, this.y);
 };
 
+Screen.prototype.scroll = function() {
+    for (var y = 0; y < this.height; y++) {
+        for (var x = 0; x < this.width; x++) {
+            if (y < this.height - 1) {
+                this.cells[y][x].copyContentsFrom(this.cells[y + 1][x]);
+            } else {
+                this.cells[y][x].clearContents();
+            }
+        }
+    }
+};
+
 Screen.prototype.moveCursor = function(x, y) {
     if (this.currentCell) {
         this.currentCell.setCursor(false);
@@ -81,7 +103,8 @@ Screen.prototype.performLineReturn = function() {
     if (this.y < this.height - 1) {
         this.moveCursor(0, this.y + 1);
     } else {
-        // TODO: Scroll
+        this.scroll();
+        this.moveCursor(0, this.y);
     }
 };
 

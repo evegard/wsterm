@@ -4,16 +4,18 @@ import base64
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
-import subprocess
+import tornado.process
 
 class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        self.process = subprocess.Popen([ 'ls', '-l' ], \
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        (stdin, stderr) = self.process.communicate()
-        self.send_string(stdin)
+        self.process = tornado.process.Subprocess([ 'ping', 'localhost' ], \
+            stdin=tornado.process.Subprocess.STREAM,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=tornado.process.Subprocess.STREAM)
+        self.process.stdout.read_until_close(callback=self.send_string, \
+            streaming_callback=self.send_string)
+        self.process.stderr.read_until_close(callback=self.send_string, \
+            streaming_callback=self.send_string)
         pass
 
     def on_message(self):

@@ -9,6 +9,7 @@ Cell.prototype.update = function() {
         'color': this.foreground,
         'background-color': this.background,
         'opacity': (this.cursor ? 0.5 : 1.0),
+        'font-weight': (this.bold ? 'bold' : 'normal'),
     });
     this.element.text(this.character);
 };
@@ -40,9 +41,15 @@ Cell.prototype.setBackground = function(color) {
     this.update();
 };
 
+Cell.prototype.setBold = function(bold) {
+    this.bold = bold;
+    this.update();
+};
+
 Cell.prototype.resetFormatting = function() {
     this.foreground = 'gray';
     this.background = 'black';
+    this.bold = false;
     this.update();
 };
 
@@ -74,6 +81,17 @@ var Screen = function(container) {
 Screen.prototype.resetColors = function() {
     this.foreground = 'gray';
     this.background = 'black';
+    this.bold = false;
+};
+
+Screen.prototype.swapColors = function() {
+    var temporary = this.foreground;
+    this.foreground = this.background;
+    this.background = temporary;
+};
+
+Screen.prototype.setBold = function() {
+    this.bold = true;
 };
 
 Screen.prototype.recreateCells = function() {
@@ -219,6 +237,10 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
                     console.log('Unknown color mode ' + colorMode);
                     break;
                 }
+            } else if (format == 1) {
+                this.setBold();
+            } else if (format == 7) {
+                this.swapColors();
             } else if (format == 0) {
                 this.resetColors();
             }
@@ -239,6 +261,7 @@ Screen.prototype.print = function(text) {
                 this.currentCell.setCharacter(character);
                 this.currentCell.setForeground(this.foreground);
                 this.currentCell.setBackground(this.background);
+                this.currentCell.setBold(this.bold);
                 this.advanceCursor();
             } else if (characterCode === 27) {
                 this.state = 'escape1';

@@ -1,20 +1,24 @@
 #!/usr/bin/python
 
 import base64
+import fcntl
+import pty
+import struct
+import subprocess
+import termios
 import tornado.ioloop
+import tornado.iostream
 import tornado.web
 import tornado.websocket
-import tornado.process
 
 class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        self.process = tornado.process.Subprocess([ 'watch', '-c', 'ls -la --color=always' ], \
-            stdin=tornado.process.Subprocess.STREAM,
-            stdout=tornado.process.Subprocess.STREAM,
-            stderr=tornado.process.Subprocess.STREAM)
-        self.process.stdout.read_until_close(callback=self.send_string, \
-            streaming_callback=self.send_string)
-        self.process.stderr.read_until_close(callback=self.send_string, \
+        (master, slave) = pty.openpty()
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 78, 100, 100))
+        self.process = subprocess.Popen([ 'top', '-d', '2' ], \
+            stdin=slave, stdout=slave, stderr=slave)
+        self.stdout = tornado.iostream.PipeIOStream(master)
+        self.stdout.read_until_close(callback=self.send_string, \
             streaming_callback=self.send_string)
         pass
 

@@ -14,8 +14,8 @@ import tornado.websocket
 class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         (master, slave) = pty.openpty()
-        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 78, 100, 100))
-        self.process = subprocess.Popen([ 'top', '-d', '2' ], \
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 79, 100, 100))
+        self.process = subprocess.Popen([ 'top', '-d', '1' ], \
             stdin=slave, stdout=slave, stderr=slave)
         self.stdout = tornado.iostream.PipeIOStream(master)
         self.stdout.read_until_close(callback=self.send_string, \

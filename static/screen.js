@@ -5,10 +5,11 @@ var Screen = function(container) {
     this.x = 0;
     this.y = 0;
 
+    this.currentStyle = null;
+    this.resetStyle();
+
     this.cells = null;
     this.currentCell = null;
-    this.resetColors();
-
     this.state = 'character';
 
     this.frame = $('<pre />');
@@ -17,20 +18,18 @@ var Screen = function(container) {
     this.recreateCells();
 };
 
-Screen.prototype.resetColors = function() {
-    this.foreground = 'gray';
-    this.background = 'black';
-    this.bold = false;
+Screen.prototype.resetStyle = function() {
+    this.currentStyle = {
+        'foreground': 'gray',
+        'background': 'black',
+        'bold': false,
+    };
 };
 
 Screen.prototype.swapColors = function() {
-    var temporary = this.foreground;
-    this.foreground = this.background;
-    this.background = temporary;
-};
-
-Screen.prototype.setBold = function() {
-    this.bold = true;
+    var temporary = this.currentStyle.foreground;
+    this.currentStyle.foreground = this.currentStyle.background;
+    this.currentStyle.background = temporary;
 };
 
 Screen.prototype.recreateCells = function() {
@@ -53,9 +52,9 @@ Screen.prototype.scroll = function() {
     for (var y = 0; y < this.height; y++) {
         for (var x = 0; x < this.width; x++) {
             if (y < this.height - 1) {
-                this.cells[y][x].copyContentsFrom(this.cells[y + 1][x]);
+                this.cells[y][x].copyPropertiesFrom(this.cells[y + 1][x]);
             } else {
-                this.cells[y][x].clearContents();
+                this.cells[y][x].resetProperties();
             }
         }
     }
@@ -143,15 +142,14 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
     case 'm':
         for (var i = 0; i < parameters.length; i++) {
             var format = parameters[i];
-            console.log('format ' + format);
             if (format >= 30 && format <= 37) {
-                this.foreground = darkColorCodeToCSS(format - 30);
+                this.currentStyle.foreground = darkColorCodeToCSS(format - 30);
             } else if (format >= 40 && format <= 47) {
-                this.background = darkColorCodeToCSS(format - 40);
+                this.currentStyle.background = darkColorCodeToCSS(format - 40);
             } else if (format >= 90 && format <= 97) {
-                this.foreground = lightColorCodeToCSS(format - 90);
+                this.currentStyle.foreground = lightColorCodeToCSS(format - 90);
             } else if (format >= 100 && format <= 107) {
-                this.background = lightColorCodeToCSS(format - 100);
+                this.currentStyle.background = lightColorCodeToCSS(format - 100);
             } else if (format == 38 || format == 48) {
                 if (i + 1 >= parameters.length) {
                     console.log('Missing argument for color selection');
@@ -167,9 +165,9 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
                     var colorIndex = parameters[++i];
                     var colorCSS = colorIndexToCSS(colorIndex);
                     if (format == 38) {
-                        this.foreground = colorCSS;
+                        this.currentStyle.foreground = colorCSS;
                     } else {
-                        this.background = colorCSS;
+                        this.currentStyle.background = colorCSS;
                     }
                     break;
                 default:
@@ -177,13 +175,16 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
                     break;
                 }
             } else if (format == 1) {
-                this.setBold();
+                this.currentStyle.bold = true;
             } else if (format == 7) {
                 this.swapColors();
             } else if (format == 0) {
-                this.resetColors();
+                this.resetStyle();
             }
         }
+        break;
+    default:
+        console.log('Unimplemented escape sequence: command \'' + command + '\', parameters \'' + parameters + '\')');
         break;
     }
 };
@@ -197,16 +198,16 @@ Screen.prototype.print = function(text) {
             if (character === '\n') {
                 this.performLineReturn();
             } else if (characterCode >= 32 && characterCode <= 126) {
-                this.currentCell.setCharacter(character);
-                this.currentCell.setForeground(this.foreground);
-                this.currentCell.setBackground(this.background);
-                this.currentCell.setBold(this.bold);
+                this.currentCell.updateProperties({ 'character': character });
+                this.currentCell.updateProperties(this.currentStyle);
+                this.currentCell.refresh();
                 this.advanceCursor();
             } else if (characterCode === 27) {
                 this.state = 'escape1';
+            } else if (characterCode === 13) {
+                // Ignore
             } else {
-                this.currentCell.setCharacter(' ');
-                this.advanceCursor();
+                console.log('Unknown character code to print ' + characterCode);
             }
             break;
         case 'escape1':
@@ -224,7 +225,6 @@ Screen.prototype.print = function(text) {
                 var sequence = this.escapeCharacter + this.escapeParameters + character;
                 switch (this.escapeCharacter) {
                 case '[':
-                    console.log('Processing escape sequence ' + sequence);
                     this.processEscapeSequence(character, this.escapeParameters);
                     break;
                 default:
@@ -238,6 +238,7 @@ Screen.prototype.print = function(text) {
             break;
         default:
             console.log('Unknown state ' + this.state);
+            break;
         }
     }
 };

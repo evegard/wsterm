@@ -1,60 +1,54 @@
 var Cell = function() {
     this.element = $('<span />');
-    this.cursor = false;
-    this.clearContents();
+    this.currentProperties = {};
+    this.previousProperties = {};
+    this.resetProperties();
 };
 
-Cell.prototype.update = function() {
-    this.element.css({
-        'color': this.foreground,
-        'background-color': this.background,
-        'opacity': (this.cursor ? 0.5 : 1.0),
-        'font-weight': (this.bold ? 'bold' : 'normal'),
-    });
-    this.element.text(this.character);
+Cell.prototype.resetProperties = function() {
+    this.currentProperties = {
+        'character': ' ',
+        'foreground': 'gray',
+        'background': 'black',
+        'bold': false,
+        'cursor': false,
+    };
+    this.refresh();
+};
+
+Cell.prototype.refresh = function() {
+    for (var property in this.currentProperties) {
+        var value = this.currentProperties[property];
+        var previousValue = this.previousProperties[property];
+        if (value !== previousValue) {
+            switch (property) {
+            case 'character': this.element.text('' + value); break;
+            case 'foreground': this.element.css('color', value); break;
+            case 'background': this.element.css('background-color', value); break;
+            case 'bold': this.element.css('font-weight', value ? 'bold' : 'normal'); break;
+            case 'cursor': this.element.css('opacity', value ? 0.5 : 1.0); break;
+            default: console.log('Unknown property ' + property); break;
+            }
+            this.previousProperties[property] = value;
+        }
+    }
 };
 
 Cell.prototype.setCursor = function(cursor) {
-    this.cursor = cursor;
-    this.update();
+    this.currentProperties.cursor = cursor;
+    this.refresh();
 };
 
-Cell.prototype.setCharacter = function(character) {
-    this.character = character;
-    this.update();
+Cell.prototype.copyPropertiesFrom = function(other) {
+    var copyProperties = [ 'character', 'foreground', 'background', 'bold' ];
+    for (var property in copyProperties) {
+        this.currentProperties[property] = other.currentProperties[property];
+    }
+    this.refresh();
 };
 
-Cell.prototype.copyContentsFrom = function(other) {
-    this.foreground = other.foreground;
-    this.background = other.background;
-    this.character = other.character;
-    this.update();
-};
-
-Cell.prototype.setForeground = function(color) {
-    this.foreground = color;
-    this.update();
-};
-
-Cell.prototype.setBackground = function(color) {
-    this.background = color;
-    this.update();
-};
-
-Cell.prototype.setBold = function(bold) {
-    this.bold = bold;
-    this.update();
-};
-
-Cell.prototype.resetFormatting = function() {
-    this.foreground = 'gray';
-    this.background = 'black';
-    this.bold = false;
-    this.update();
-};
-
-Cell.prototype.clearContents = function() {
-    this.resetFormatting();
-    this.character = ' ';
-    this.update();
+Cell.prototype.updateProperties = function(newProperties) {
+    for (var property in newProperties) {
+        this.currentProperties[property] = newProperties[property];
+    }
 };

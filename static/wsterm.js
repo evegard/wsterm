@@ -5,6 +5,18 @@ var WSTerm = function(url, container) {
     }.bind(this);
 
     this.screen = new Screen(container);
+
+    $('body').keypress(function(ev) {
+        this.socket.send(ev.keyCode);
+        return false;
+    }.bind(this));
+
+    $('body').keydown(function(ev) {
+        if (ev.keyCode === 27) {
+            this.socket.send(ev.keyCode);
+            return false;
+        }
+    }.bind(this));
 };
 
 WSTerm.prototype.handleInput = function(input) {

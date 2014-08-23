@@ -15,15 +15,16 @@ class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         (master, slave) = pty.openpty()
         fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 79, 100, 100))
-        self.process = subprocess.Popen([ 'top', '-d', '1' ], \
+        self.process = subprocess.Popen([ 'vim' ], \
             stdin=slave, stdout=slave, stderr=slave)
-        self.stdout = tornado.iostream.PipeIOStream(master)
-        self.stdout.read_until_close(callback=self.send_string, \
+        self.pipe = tornado.iostream.PipeIOStream(master)
+        self.pipe.read_until_close(callback=self.send_string, \
             streaming_callback=self.send_string)
-        pass
 
-    def on_message(self):
-        pass
+    def on_message(self, message):
+        character = chr(int(message))
+        print message, character
+        self.pipe.write(character)
 
     def on_close(self):
         pass

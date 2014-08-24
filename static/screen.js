@@ -51,11 +51,23 @@ Screen.prototype.recreateCells = function() {
     this.moveCursor(this.x, this.y);
 };
 
-Screen.prototype.scroll = function() {
+Screen.prototype.scrollUp = function() {
     for (var y = this.scrollTop; y <= this.scrollBottom; y++) {
         for (var x = 0; x < this.width; x++) {
             if (y < this.scrollBottom) {
                 this.cells[y][x].copyPropertiesFrom(this.cells[y + 1][x]);
+            } else {
+                this.cells[y][x].resetProperties();
+            }
+        }
+    }
+};
+
+Screen.prototype.scrollDown = function() {
+    for (var y = this.scrollBottom; y >= this.scrollTop; y--) {
+        for (var x = 0; x < this.width; x++) {
+            if (y > this.scrollTop) {
+                this.cells[y][x].copyPropertiesFrom(this.cells[y - 1][x]);
             } else {
                 this.cells[y][x].resetProperties();
             }
@@ -85,7 +97,7 @@ Screen.prototype.performLineReturn = function() {
     if (this.y < this.scrollBottom) {
         this.moveCursor(0, this.y + 1);
     } else {
-        this.scroll();
+        this.scrollUp();
         this.moveCursor(0, this.y);
     }
 };
@@ -260,6 +272,18 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
     case 'r':
         this.scrollTop = parameters[0] - 1;
         this.scrollBottom = parameters[1] - 1;
+        break;
+    case 'L':
+        var n = parameter || 1;
+        for (var i = 0; i < n; i++) {
+            this.scrollDown();
+        }
+        break;
+    case 'M':
+        var n = parameter || 1;
+        for (var i = 0; i < n; i++) {
+            this.scrollUp();
+        }
         break;
     default:
         console.log('Unimplemented escape sequence: command \'' + command + '\', parameters \'' + parameters + '\')');

@@ -2,6 +2,9 @@ var Screen = function(container) {
     this.container = container;
     this.width = 80;
     this.height = 24;
+
+    this.scrollTop = 0;
+    this.scrollBottom = this.height - 1;
     this.x = 0;
     this.y = 0;
 
@@ -49,9 +52,9 @@ Screen.prototype.recreateCells = function() {
 };
 
 Screen.prototype.scroll = function() {
-    for (var y = 0; y < this.height; y++) {
+    for (var y = this.scrollTop; y <= this.scrollBottom; y++) {
         for (var x = 0; x < this.width; x++) {
-            if (y < this.height - 1) {
+            if (y < this.scrollBottom) {
                 this.cells[y][x].copyPropertiesFrom(this.cells[y + 1][x]);
             } else {
                 this.cells[y][x].resetProperties();
@@ -70,16 +73,16 @@ Screen.prototype.moveCursor = function(x, y) {
     this.currentCell.setCursor(true);
 };
 
-Screen.prototype.advanceCursor = function() {
+Screen.prototype.advanceCursor = function(avoidLineReturn) {
     if (this.x < this.width - 1) {
         this.moveCursor(this.x + 1, this.y);
-    } else {
+    } else if (!avoidLineReturn) {
         this.performLineReturn();
     }
 };
 
 Screen.prototype.performLineReturn = function() {
-    if (this.y < this.height - 1) {
+    if (this.y < this.scrollBottom) {
         this.moveCursor(0, this.y + 1);
     } else {
         this.scroll();
@@ -149,8 +152,52 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
         var column = parameters[1] || 1;
         this.moveCursor(column - 1, row - 1);
         break;
+    case 'C':
+        var n = parameter || 1;
+        for (var i = 0; i < n; i++) {
+            this.advanceCursor(true);
+        }
+        break;
     case 'd':
         this.performLineReturn();
+        break;
+    case 'J':
+    case 'K':
+        var n = parameter || '0';
+        var fromX, toX, fromY, toY;
+        switch (n) {
+        case '0': // Clear to end of line
+            fromX = this.x;
+            toX = this.width - 1;
+            fromY = this.y + 1;
+            toY = this.height - 1;
+            break;
+        case '1': // Clear to beginning of line
+            fromX = 0;
+            toX = this.x;
+            fromY = 0;
+            toY = this.y - 1;
+            break;
+        case '2': // Clear all
+            from = 0;
+            to = this.width - 1;
+            fromY = 0;
+            toY = this.height - 1;
+            break;
+        default:
+            console.log('Invalid argument \'' + parameter + '\' for escape sequence ' + command);
+            return;
+        }
+        for (var x = fromX; x <= toX; x++) {
+            this.cells[this.y][x].resetProperties();
+        }
+        if (command === 'J') {
+            for (var y = Math.max(fromY, 0); y <= Math.min(toY, this.height - 1); y++) {
+                for (var x = 0; x < this.width; x++) {
+                    this.cells[y][x].resetProperties();
+                }
+            }
+        }
         break;
     case 'm':
         for (var i = 0; i < parameters.length; i++) {
@@ -196,6 +243,24 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
             }
         }
         break;
+    case 'l':
+        if (parameter === '?25') {
+            // TODO: Hide cursor
+        } else {
+            console.log('Unknown argument for escape sequence l: \'' + parameter + '\')');
+        }
+        break;
+    case 'h':
+        if (parameter === '?25') {
+            // TODO: Show cursor
+        } else {
+            console.log('Unknown argument for escape sequence h: \'' + parameter + '\')');
+        }
+        break;
+    case 'r':
+        this.scrollTop = parameters[0] - 1;
+        this.scrollBottom = parameters[1] - 1;
+        break;
     default:
         console.log('Unimplemented escape sequence: command \'' + command + '\', parameters \'' + parameters + '\')');
         break;
@@ -214,7 +279,7 @@ Screen.prototype.print = function(text) {
                 this.currentCell.updateProperties({ 'character': character });
                 this.currentCell.updateProperties(this.currentStyle);
                 this.currentCell.refresh();
-                this.advanceCursor();
+                this.advanceCursor(false);
             } else if (characterCode === 27) {
                 this.state = 'escape1';
             } else if (characterCode === 13) {

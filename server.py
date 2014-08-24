@@ -14,7 +14,7 @@ import tornado.websocket
 class TerminalHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         (master, slave) = pty.openpty()
-        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 79, 100, 100))
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 100, 100))
         self.process = subprocess.Popen([ 'vim' ], \
             stdin=slave, stdout=slave, stderr=slave)
         self.pipe = tornado.iostream.PipeIOStream(master)

@@ -7,6 +7,7 @@ import pty
 import struct
 import subprocess
 import termios
+import tornado.httpserver
 import tornado.ioloop
 import tornado.iostream
 import tornado.web
@@ -57,9 +58,16 @@ class TerminalHandler(tornado.websocket.WebSocketHandler):
 
 if __name__ == '__main__':
     secret = str(uuid.uuid4())
-    print 'Navigate your browser to <http://127.0.0.1:8080/?%s> to use WSTerm' % secret
-    tornado.web.Application([
+    print 'Navigate your browser to <https://127.0.0.1:8080/?%s> to use WSTerm' % secret
+
+    application = tornado.web.Application([
         (r'/()', tornado.web.StaticFileHandler, { 'path': './static/index.html' }),
         (r'/wsterm', TerminalHandler, { 'secret': secret }),
-    ], static_path='./static/').listen(8080, address='127.0.0.1')
+    ], static_path='./static/')
+    server = tornado.httpserver.HTTPServer(application, ssl_options={ \
+        'keyfile': 'certificate.key',
+        'certfile': 'certificate.crt',
+    })
+    server.listen(8080, address='127.0.0.1')
+
     tornado.ioloop.IOLoop.instance().start()

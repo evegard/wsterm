@@ -23,7 +23,7 @@ var Screen = function(container) {
 
 Screen.prototype.resetStyle = function() {
     this.currentStyle = {
-        'foreground': 'gray',
+        'foreground': 'lightgray',
         'background': 'black',
         'bold': false,
     };

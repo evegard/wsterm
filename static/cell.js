@@ -8,7 +8,7 @@ var Cell = function() {
 Cell.prototype.resetProperties = function() {
     this.currentProperties = {
         'character': ' ',
-        'foreground': 'gray',
+        'foreground': 'lightgray',
         'background': 'black',
         'bold': false,
         'cursor': false,

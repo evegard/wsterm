@@ -15,9 +15,9 @@ running:
 `openssl req -x509 -newkey rsa:2048 -keyout certificate.key -out
 certificate.crt -nodes -days 3650`
 
-Make sure the Tornado framework is installed:
+Make sure the Tornado framework and jQuery are installed:
 
-`sudo aptitude install python-tornado`
+`sudo aptitude install python-tornado libjs-jquery`
 
 Usage
 -----

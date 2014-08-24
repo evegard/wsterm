@@ -191,8 +191,8 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
             toY = this.y - 1;
             break;
         case '2': // Clear all
-            from = 0;
-            to = this.width - 1;
+            fromX = 0;
+            toX = this.width - 1;
             fromY = 0;
             toY = this.height - 1;
             break;

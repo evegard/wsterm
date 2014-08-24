@@ -122,7 +122,20 @@ Screen.prototype.processEscapeSequence = function(command, parameter) {
         if (colorIndex >= 0x0 && colorIndex <= 0x7) {
             return darkColorCodeToCSS(colorIndex);
         } else if (colorIndex >= 0x8 && colorIndex <= 0xF) {
-            return lightColorCodeToCSS(colorIndex);
+            return lightColorCodeToCSS(colorIndex - 0x8);
+        } else if (colorIndex >= 0x10 && colorIndex <= 0xE7) {
+            var n = colorIndex - 0x10;
+            var b = n % 6; n /= 6;
+            var g = n % 6; n /= 6;
+            var r = n % 6;
+            return 'rgb(' +
+                Math.floor(r * 255 / 5) + ',' +
+                Math.floor(g * 255 / 5) + ',' +
+                Math.floor(b * 255 / 5) + ')';
+        } else if (colorIndex >= 0xE8 && colorIndex <= 0xFF) {
+            var n = colorIndex - 0xE8;
+            var grayness = Math.floor(n * 255 / 24);
+            return 'rgb(' + grayness + ',' + grayness + ',' + grayness + ')';
         } else {
             console.log('Unimplemented color index ' + colorIndex);
             return 'black';

@@ -41,7 +41,8 @@ Cell.prototype.setCursor = function(cursor) {
 
 Cell.prototype.copyPropertiesFrom = function(other) {
     var copyProperties = [ 'character', 'foreground', 'background', 'bold' ];
-    for (var property in copyProperties) {
+    for (var i in copyProperties) {
+        var property = copyProperties[i];
         this.currentProperties[property] = other.currentProperties[property];
     }
     this.refresh();

@@ -1,5 +1,5 @@
 var Cell = function() {
-    this.element = $('<span />');
+    this.element = $('<span />').text(' ');
     this.currentProperties = {};
     this.previousProperties = {};
     this.resetProperties();
@@ -22,7 +22,7 @@ Cell.prototype.refresh = function() {
         var previousValue = this.previousProperties[property];
         if (value !== previousValue) {
             switch (property) {
-            case 'character': this.element.text('' + value); break;
+            case 'character': this.element[0].childNodes[0].data = value; break;
             case 'foreground': this.element.css('color', value); break;
             case 'background': this.element.css('background-color', value); break;
             case 'bold': this.element.css('font-weight', value ? 'bold' : 'normal'); break;

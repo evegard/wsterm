@@ -4,7 +4,10 @@
 <script type="text/javascript" src="/static/wsterm.js"></script>
 <script type="text/javascript">
     $(function() {
-        new WSTerm('ws://localhost:8080/wsterm', $('#screen'));
+        new WSTerm(
+            'ws://localhost:8080/wsterm',
+            window.location.search.substr(1),
+            $('#screen'));
     });
 </script>
 <div id="screen"></div>

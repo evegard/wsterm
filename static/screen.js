@@ -1,7 +1,7 @@
 var Screen = function(container) {
     this.container = container;
-    this.width = 80;
-    this.height = 24;
+    this.width = 1;
+    this.height = 1;
 
     this.scrollTop = 0;
     this.scrollBottom = this.height - 1;

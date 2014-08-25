@@ -21,6 +21,11 @@ WSTerm.prototype.registerSocketHandlers = function() {
     this.socket.onmessage = function(e) {
         var message = JSON.parse(e.data);
         switch (message.type) {
+        case 'size':
+            this.screen.width = message.width;
+            this.screen.height = message.height;
+            this.screen.recreateCells();
+            break;
         case 'output':
             this.handleOutput(window.atob(message.output));
             break;

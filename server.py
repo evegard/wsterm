@@ -18,15 +18,24 @@ import uuid
 parser = argparse.ArgumentParser(description='Browser-based terminal emulator')
 parser.add_argument('-H', '--host', default='127.0.0.1', help='listener host for web server')
 parser.add_argument('-P', '--port', default='8080', type=int, help='listener port for web server')
+parser.add_argument('-s', '--size', default='80x24', help='size of emulated terminal')
 parser.add_argument('command', nargs='+', help='command to run in the terminal emulator')
 
 class TerminalHandler(tornado.websocket.WebSocketHandler):
-    def initialize(self, command, secret):
+    def initialize(self, command, secret, size):
         self.command = command
         self.secret = secret
+        (self.width, self.height) = size
 
         self.process = None
         self.pipe = None
+
+    def open(self):
+        self.write_message(json.dumps({ \
+            'type': 'size', \
+            'width': self.width, \
+            'height': self.height, \
+        }))
 
     def on_message(self, data):
         message = json.loads(data)
@@ -49,7 +58,8 @@ class TerminalHandler(tornado.websocket.WebSocketHandler):
 
     def start_process(self):
         (master, slave) = pty.openpty()
-        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 100, 100))
+        fcntl.ioctl(master, termios.TIOCSWINSZ, \
+            struct.pack('HHHH', self.height, self.width, 100, 100))
 
         self.process = subprocess.Popen(self.command, \
             stdin=slave, stdout=slave, stderr=slave)
@@ -73,7 +83,11 @@ if __name__ == '__main__':
 
     application = tornado.web.Application([
         (r'/()', tornado.web.StaticFileHandler, { 'path': './static/index.html' }),
-        (r'/wsterm', TerminalHandler, { 'command': args.command, 'secret': secret }),
+        (r'/wsterm', TerminalHandler, { \
+            'command': args.command, \
+            'secret': secret, \
+            'size': map(int, args.size.split('x')), \
+        }),
     ], static_path='./static/')
     server = tornado.httpserver.HTTPServer(application, ssl_options={ \
         'keyfile': 'certificate.key',

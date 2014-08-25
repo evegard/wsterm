@@ -1,5 +1,7 @@
 var Cell = function() {
     this.element = $('<span />').text(' ');
+    this.domElement = this.element[0];
+    this.textElement = this.domElement.childNodes[0];
     this.currentProperties = {};
     this.previousProperties = {};
     this.resetProperties();
@@ -22,11 +24,11 @@ Cell.prototype.refresh = function() {
         var previousValue = this.previousProperties[property];
         if (value !== previousValue) {
             switch (property) {
-            case 'character': this.element[0].childNodes[0].data = value; break;
-            case 'foreground': this.element.css('color', value); break;
-            case 'background': this.element.css('background-color', value); break;
-            case 'bold': this.element.css('font-weight', value ? 'bold' : 'normal'); break;
-            case 'cursor': this.element.css('opacity', value ? 0.5 : 1.0); break;
+            case 'character': this.textElement.data = value; break;
+            case 'foreground': this.domElement.style.color = value; break;
+            case 'background': this.domElement.style.backgroundColor = value; break;
+            case 'bold': this.domElement.style.fontWeight = (value ? 'bold' : 'normal'); break;
+            case 'cursor': this.domElement.style.opacity = (value ? 0.5 : 1.0); break;
             default: console.log('Unknown property ' + property); break;
             }
             this.previousProperties[property] = value;
@@ -40,11 +42,10 @@ Cell.prototype.setCursor = function(cursor) {
 };
 
 Cell.prototype.copyPropertiesFrom = function(other) {
-    var copyProperties = [ 'character', 'foreground', 'background', 'bold' ];
-    for (var i in copyProperties) {
-        var property = copyProperties[i];
-        this.currentProperties[property] = other.currentProperties[property];
-    }
+    this.currentProperties['character'] = other.currentProperties['character'];
+    this.currentProperties['foreground'] = other.currentProperties['foreground'];
+    this.currentProperties['background'] = other.currentProperties['background'];
+    this.currentProperties['bold'] = other.currentProperties['bold'];
     this.refresh();
 };
 

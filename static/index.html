@@ -5,7 +5,7 @@
 <script type="text/javascript">
     $(function() {
         new WSTerm(
-            'wss://127.0.0.1:8080/wsterm',
+            'wss://' + window.location.host + '/wsterm',
             window.location.search.substr(1),
             $('#screen'));
     });

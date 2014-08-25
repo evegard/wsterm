@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import argparse
 import base64
 import fcntl
 import json
@@ -14,9 +15,16 @@ import tornado.web
 import tornado.websocket
 import uuid
 
+parser = argparse.ArgumentParser(description='Browser-based terminal emulator')
+parser.add_argument('-H', '--host', default='127.0.0.1', help='listener host for web server')
+parser.add_argument('-P', '--port', default='8080', type=int, help='listener port for web server')
+parser.add_argument('command', nargs='+', help='command to run in the terminal emulator')
+
 class TerminalHandler(tornado.websocket.WebSocketHandler):
-    def initialize(self, secret):
+    def initialize(self, command, secret):
+        self.command = command
         self.secret = secret
+
         self.process = None
         self.pipe = None
 
@@ -43,7 +51,7 @@ class TerminalHandler(tornado.websocket.WebSocketHandler):
         (master, slave) = pty.openpty()
         fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 100, 100))
 
-        self.process = subprocess.Popen([ 'vim' ], \
+        self.process = subprocess.Popen(self.command, \
             stdin=slave, stdout=slave, stderr=slave)
 
         self.pipe = tornado.iostream.PipeIOStream(master)
@@ -57,17 +65,20 @@ class TerminalHandler(tornado.websocket.WebSocketHandler):
         }))
 
 if __name__ == '__main__':
+    args = parser.parse_args()
+
     secret = str(uuid.uuid4())
-    print 'Navigate your browser to <https://127.0.0.1:8080/?%s> to use WSTerm' % secret
+    print 'Navigate your browser to <https://%s:%d/?%s> to use WSTerm' % \
+        (args.host, args.port, secret)
 
     application = tornado.web.Application([
         (r'/()', tornado.web.StaticFileHandler, { 'path': './static/index.html' }),
-        (r'/wsterm', TerminalHandler, { 'secret': secret }),
+        (r'/wsterm', TerminalHandler, { 'command': args.command, 'secret': secret }),
     ], static_path='./static/')
     server = tornado.httpserver.HTTPServer(application, ssl_options={ \
         'keyfile': 'certificate.key',
         'certfile': 'certificate.crt',
     })
-    server.listen(8080, address='127.0.0.1')
+    server.listen(args.port, address=args.host)
 
     tornado.ioloop.IOLoop.instance().start()

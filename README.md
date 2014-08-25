@@ -12,14 +12,13 @@ Provide the TLS certificate to be used for HTTPS and WSS in
 `certificate.key`. A suitable self-signed certificate can be created by
 running:
 
-`openssl req -x509 -newkey rsa:2048 -keyout certificate.key -out
-certificate.crt -nodes -days 3650`
+    openssl req -x509 -newkey rsa:2048 -keyout certificate.key -out certificate.crt -nodes -days 3650
 
 Make sure the Tornado framework and jQuery are installed:
 
-`sudo aptitude install python-tornado libjs-jquery`
+    sudo aptitude install python-tornado libjs-jquery
 
 Usage
 -----
 
-Run `./server.py` and follow the instructions.
+Run `./server.py -h` for usage. Try for example `./server.py -- vim`.
